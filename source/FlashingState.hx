@@ -60,6 +60,8 @@ class FlashingState extends MusicBeatState
 						}
 					});
 				}
+				FlxG.save.data.alreadydone = true;
+				FlxG.save.flush();
 			}
 		}
 		super.update(elapsed);

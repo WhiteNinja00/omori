@@ -228,6 +228,7 @@ class MainMenuState extends MusicBeatState
 									case 'new game':
 										FlxG.save.data.progression = 0;
 										FlxG.save.data.gamestuff = [64, 224, 'down', 0];
+										FlxG.save.data.songsdone = [];
 										FlxG.save.flush();
 										MusicBeatState.switchState(new Omori());
 									case 'continue':

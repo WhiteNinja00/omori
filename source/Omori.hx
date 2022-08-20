@@ -14,6 +14,7 @@ class Omori extends MusicBeatState {
     var curdirection = 'down';
     var framerate = 4;
     var speed = 4;
+    var fakespeed = 4;
     var section = 0;
     var dialoguebox:FlxSprite;
     var dialoguetext:FlxTypeText;
@@ -149,6 +150,12 @@ class Omori extends MusicBeatState {
         FlxG.camera.follow(player, LOCKON, 1);
         FlxG.camera.zoom = 1.8;
 
+        if(FlxG.save.data.songsdone.contains('tutorial')) {
+            FlxG.save.data.progression = 1;
+        } else {
+            FlxG.save.data.progression = 0;
+        }
+
 		super.create();
 	}
 
@@ -194,16 +201,24 @@ class Omori extends MusicBeatState {
             if(controls.UI_RIGHT) {
                 curdirection = 'right';
             }
-            if (FlxG.keys.pressed.SHIFT) {
+            if(FlxG.keys.pressed.S && FlxG.keys.pressed.P && FlxG.keys.pressed.E && FlxG.keys.pressed.D) {
+                speed = 8;
+                framerate = 8;
+            }
+            if(FlxG.keys.pressed.W && FlxG.keys.pressed.N) {
+                speed = 8;
+                framerate = 8;
+            }
+            if(FlxG.keys.pressed.SHIFT) {
                 if(runstuff != 'run') {
                     runstuff = 'run';
                 }
-                speed = 8;
+                fakespeed = speed * 2;
             } else {
                 if(runstuff != 'walk') {
                     runstuff = 'walk';
                 }
-                speed = 4;
+                fakespeed = speed;
             }
             if(!controls.UI_UP && !controls.UI_DOWN && !controls.UI_LEFT && !controls.UI_RIGHT) {
                 player.animation.play(curdirection + 'idle');
@@ -211,27 +226,27 @@ class Omori extends MusicBeatState {
                 canmove = true;
                 switch(curdirection) {
                     case 'up':
-                        player.y -= speed;
+                        player.y -= fakespeed;
                         if(checkpos()) {
-                            player.y += speed;
+                            player.y += fakespeed;
                             canmove = false;
                         }
                     case 'down':
-                        player.y += speed;
+                        player.y += fakespeed;
                         if(checkpos()) {
-                            player.y -= speed;
+                            player.y -= fakespeed;
                             canmove = false;
                         }
                     case 'left':
-                        player.x -= speed;
+                        player.x -= fakespeed;
                         if(checkpos()) {
-                            player.x += speed;
+                            player.x += fakespeed;
                             canmove = false;
                         }
                     case 'right':
-                        player.x += speed;
+                        player.x += fakespeed;
                         if(checkpos()) {
-                            player.x -= speed;
+                            player.x -= fakespeed;
                             canmove = false;
                         }
                 }
@@ -249,8 +264,10 @@ class Omori extends MusicBeatState {
                 if(!closingdialogue) {
                     dialoguefound = false;
                     sectionstuff.forEach(function(spr:FlxSprite) {
-                        if(FlxMath.distanceBetween(player, spr) < 40 && !dialoguefound) {
-                            dialoguefound = true;
+                        if(FlxMath.distanceBetween(player, spr) < 35 && !dialoguefound) {
+                            if(spr.ID != 1) {
+                                dialoguefound = true;
+                            }
                             savedata();
                             switch(section) {
                                 case 0:
@@ -264,6 +281,12 @@ class Omori extends MusicBeatState {
                                         case 4:
                                             opendialogue('You tried to boot up your laptop.', '', '"Try again later".');
                                         case 5:
+                                            if(FlxG.save.data.progression > 0) {
+
+                                            } else {
+                                                opendialogue('You must challange Omori First');
+                                            }
+                                        case 6:
                                             opendialogue('oh you want a rap battle', '', 'sure', 'tutorial');
                                     }
                             }
