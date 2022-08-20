@@ -219,6 +219,7 @@ class MainMenuState extends MusicBeatState
 					if(FlxG.save.data.progression == -1 && curSelected == 1) {
 						FlxG.sound.play(Paths.sound('cant'));
 					} else {
+						FlxG.sound.play(Paths.sound('confirmMenu'));
 						selectedSomethin = true;
 	
 						menuItems.forEach(function(spr:FlxSprite) {
@@ -227,10 +228,18 @@ class MainMenuState extends MusicBeatState
 								{
 									case 'new game':
 										FlxG.save.data.progression = 0;
-										FlxG.save.data.gamestuff = [64, 224, 'down', 0];
+										FlxG.save.data.gamestuff = [96, 224, 'down', 0];
 										FlxG.save.data.songsdone = [];
+										FlxG.save.data.cat = false;
+										FlxG.save.data.pc = false;
+										FlxG.save.data.diary = false;
+										FlxG.save.data.tissue = false;
+										FlxG.save.data.door = false;
+										FlxG.save.data.omori = false;
+										FlxG.save.data.mic = false;
+										FlxG.save.data.micfell = false;
 										FlxG.save.flush();
-										MusicBeatState.switchState(new Omori());
+										MusicBeatState.switchState(new Omori('intro'));
 									case 'continue':
 										MusicBeatState.switchState(new Omori());
 									case 'options':

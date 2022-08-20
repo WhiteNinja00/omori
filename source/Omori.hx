@@ -8,6 +8,8 @@ import flixel.tweens.FlxTween;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.math.FlxMath;
 import flixel.util.FlxCollision;
+import vlc.MP4Handler;
+import flixel.util.FlxTimer;
 
 class Omori extends MusicBeatState {
 	var player:FlxSprite;
@@ -36,6 +38,9 @@ class Omori extends MusicBeatState {
     var dialoguefound = false;
     var runstuff = '';
     var canmove = false;
+    var invideo = false;
+    var waitformic = false;
+    var microphonetext = false;
 
     public function new(song:String = '') {
         super();
@@ -86,6 +91,19 @@ class Omori extends MusicBeatState {
                 var door:FlxSprite = new FlxSprite(64, 64).loadGraphic(Paths.image('whitespace/door'));
                 door.ID = 5;
                 sectionstuff.add(door);
+
+                var omori:FlxSprite = new FlxSprite(64, 192).loadGraphic(Paths.image('whitespace/omori'));
+                omori.ID = 6;
+                sectionstuff.add(omori);
+
+                var mic:FlxSprite = new FlxSprite(475, 89).loadGraphic(Paths.image('whitespace/omori'));
+                if(FlxG.save.data.mic) {
+                    mic.visible = false;
+                } else {
+                    mic.visible = FlxG.save.data.micfell;
+                }
+                mic.ID = 7;
+                sectionstuff.add(mic);
         }
 
         player = new FlxSprite();
@@ -115,7 +133,7 @@ class Omori extends MusicBeatState {
 
         switch(section) {
             case 0:
-                var light:FlxSprite = new FlxSprite(135, -95);
+                var light:FlxSprite = new FlxSprite(135, -120);
                 light.loadGraphic(Paths.image('whitespace/light'), true, 17, 232);
                 light.animation.add("idle", [0, 1], framerate);
                 light.ID = 1;
@@ -139,6 +157,28 @@ class Omori extends MusicBeatState {
         hand.alpha = 0;
 		add(hand);
 
+        if(songstuff == 'intro') {
+            var backgroundthing:FlxSprite = new FlxSprite(0, 0).makeGraphic(FlxG.width, FlxG.height, 0xFF000000);
+            backgroundthing.scrollFactor.set(0, 0);
+            add(backgroundthing);
+            var filepath:String = Paths.video('intro');
+            var video:MP4Handler = new MP4Handler();
+            video.playVideo(filepath);
+            invideo = true;
+            FlxG.sound.music.pause();
+            video.finishCallback = function() {
+                remove(backgroundthing);
+                FlxG.sound.music.play();
+                FlxG.sound.playMusic(Paths.music('whitespace'), 0);
+                invideo = false;
+            }
+        } else {
+            switch(section) {
+                case 0:
+                    FlxG.sound.playMusic(Paths.music('whitespace'), 0);
+            }
+        }
+
         switch(songstuff) {
             case 'tutorial':
                 opendialogue('epic', '', 'you are epic');
@@ -160,156 +200,211 @@ class Omori extends MusicBeatState {
 	}
 
 	override function update(elapsed:Float) {
-        if(dialogueopen) {
-            floatstuff += 0.05;
-            hand.x += Math.sin(floatstuff) / 2;
-            if(controls.ACCEPT) {
-                if(dialoguetyping) {
-                    if(!stillopening) {
-                        dialoguetext.skip();
-                        dialoguedone();
-                    }
-                } else {
-                    if(secondtext) {
-                        remove(dialoguetext);
-                        opendialogue();
+        if(!invideo) {
+            if (FlxG.sound.music.volume < 0.8) {
+                FlxG.sound.music.volume += 0.5 * FlxG.elapsed;
+            }
+
+            if(dialogueopen) {
+                floatstuff += 0.05;
+                hand.x += Math.sin(floatstuff) / 2;
+                if(controls.ACCEPT) {
+                    if(dialoguetyping) {
+                        if(!stillopening) {
+                            dialoguetext.skip();
+                            dialoguedone();
+                        }
                     } else {
-                        if(shouldplaysong && kindasecond) {
-                            shouldplaysong = false;
-                            kindasecond = false;
-                            FlxG.sound.play(Paths.sound('confirmMenu'));
-							PlayState.SONG = Song.loadFromJson(songcache, songcache);
-							PlayState.isStoryMode = false;
-							PlayState.storyDifficulty = 1;
-							LoadingState.loadAndSwitchState(new PlayState());
+                        if(secondtext) {
+                            remove(dialoguetext);
+                            opendialogue();
                         } else {
-                            closedialogue();
+                            if(microphonetext) {
+                                sectionstuff.forEach(function(spr:FlxSprite) {
+                                    if(spr.ID == 7) {
+                                        spr.visible = false;
+                                    }
+                                });
+                                FlxG.save.data.mic = true;
+                                microphonetext = false;
+                                closedialogue();
+                            } else {
+                                if(shouldplaysong && kindasecond) {
+                                    shouldplaysong = false;
+                                    kindasecond = false;
+                                    PlayState.SONG = Song.loadFromJson(songcache, songcache);
+                                    PlayState.isStoryMode = false;
+                                    PlayState.storyDifficulty = 1;
+                                    LoadingState.loadAndSwitchState(new PlayState());
+                                } else {
+                                    if(FlxG.save.data.micfell) {
+                                        closedialogue();
+                                    } else {
+                                        if(FlxG.save.data.cat && FlxG.save.data.pc && FlxG.save.data.diary && FlxG.save.data.tissue && FlxG.save.data.door && FlxG.save.data.omori && !waitformic) {
+                                            waitformic = true;
+                                            closedialogue();
+                                            new FlxTimer().start(1, function(tmr:FlxTimer) {
+                                                FlxG.sound.play(Paths.sound('micfall'));
+                                                FlxG.save.data.micfell = true;
+                                                sectionstuff.forEach(function(spr:FlxSprite) {
+                                                    if(spr.ID == 7) {
+                                                        spr.visible = true;
+                                                    }
+                                                });
+                                                new FlxTimer().start(2, function(tmr:FlxTimer) {
+                                                    opendialogue('Something fell nearby.');
+                                                    waitformic = false;
+                                                });
+                                                savedata(); 
+                                            });
+                                        } else {
+                                            closedialogue();
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
-        } else {
-            if(controls.UI_UP) {
-                curdirection = 'up';
-            }
-            if(controls.UI_DOWN) {
-                curdirection = 'down';
-            }
-            if(controls.UI_LEFT) {
-                curdirection = 'left';
-            }
-            if(controls.UI_RIGHT) {
-                curdirection = 'right';
-            }
-            if(FlxG.keys.pressed.S && FlxG.keys.pressed.P && FlxG.keys.pressed.E && FlxG.keys.pressed.D) {
-                speed = 8;
-                framerate = 8;
-            }
-            if(FlxG.keys.pressed.W && FlxG.keys.pressed.N) {
-                speed = 8;
-                framerate = 8;
-            }
-            if(FlxG.keys.pressed.SHIFT) {
-                if(runstuff != 'run') {
-                    runstuff = 'run';
-                }
-                fakespeed = speed * 2;
             } else {
-                if(runstuff != 'walk') {
-                    runstuff = 'walk';
-                }
-                fakespeed = speed;
-            }
-            if(!controls.UI_UP && !controls.UI_DOWN && !controls.UI_LEFT && !controls.UI_RIGHT) {
-                player.animation.play(curdirection + 'idle');
-            } else {
-                canmove = true;
-                switch(curdirection) {
-                    case 'up':
-                        player.y -= fakespeed;
-                        if(checkpos()) {
-                            player.y += fakespeed;
-                            canmove = false;
+                if(!waitformic) {
+                    if(controls.UI_UP) {
+                        curdirection = 'up';
+                    }
+                    if(controls.UI_DOWN) {
+                        curdirection = 'down';
+                    }
+                    if(controls.UI_LEFT) {
+                        curdirection = 'left';
+                    }
+                    if(controls.UI_RIGHT) {
+                        curdirection = 'right';
+                    }
+                    if(FlxG.keys.pressed.S && FlxG.keys.pressed.P && FlxG.keys.pressed.E && FlxG.keys.pressed.D) {
+                        speed = 8;
+                        framerate = 8;
+                    }
+                    if(FlxG.keys.pressed.W && FlxG.keys.pressed.N) {
+                        savedata();
+                    }
+                    if(FlxG.keys.pressed.SHIFT) {
+                        if(runstuff != 'run') {
+                            runstuff = 'run';
                         }
-                    case 'down':
-                        player.y += fakespeed;
-                        if(checkpos()) {
-                            player.y -= fakespeed;
-                            canmove = false;
+                        fakespeed = speed * 2;
+                    } else {
+                        if(runstuff != 'walk') {
+                            runstuff = 'walk';
                         }
-                    case 'left':
-                        player.x -= fakespeed;
-                        if(checkpos()) {
-                            player.x += fakespeed;
-                            canmove = false;
+                        fakespeed = speed;
+                    }
+                    if(!controls.UI_UP && !controls.UI_DOWN && !controls.UI_LEFT && !controls.UI_RIGHT) {
+                        player.animation.play(curdirection + 'idle');
+                    } else {
+                        canmove = true;
+                        switch(curdirection) {
+                            case 'up':
+                                player.y -= fakespeed;
+                                if(checkpos()) {
+                                    player.y += fakespeed;
+                                    canmove = false;
+                                }
+                            case 'down':
+                                player.y += fakespeed;
+                                if(checkpos()) {
+                                    player.y -= fakespeed;
+                                    canmove = false;
+                                }
+                            case 'left':
+                                player.x -= fakespeed;
+                                if(checkpos()) {
+                                    player.x += fakespeed;
+                                    canmove = false;
+                                }
+                            case 'right':
+                                player.x += fakespeed;
+                                if(checkpos()) {
+                                    player.x -= fakespeed;
+                                    canmove = false;
+                                }
                         }
-                    case 'right':
-                        player.x += fakespeed;
-                        if(checkpos()) {
-                            player.x -= fakespeed;
-                            canmove = false;
+                        if(canmove) {
+                            player.animation.play(curdirection + runstuff + '');
+                        } else {
+                            player.animation.play(curdirection + 'idle');
                         }
-                }
-                if(canmove) {
-                    player.animation.play(curdirection + runstuff + '');
-                } else {
-                    player.animation.play(curdirection + 'idle');
-                }
-            }
-            if(controls.BACK) {
-                savedata();
-                MusicBeatState.switchState(new MainMenuState());
-            }
-            if(controls.ACCEPT) {
-                if(!closingdialogue) {
-                    dialoguefound = false;
-                    sectionstuff.forEach(function(spr:FlxSprite) {
-                        if(FlxMath.distanceBetween(player, spr) < 35 && !dialoguefound) {
-                            if(spr.ID != 1) {
-                                dialoguefound = true;
-                            }
-                            savedata();
-                            switch(section) {
-                                case 0:
-                                    switch(spr.ID) {
-                                        case 0:
-                                            opendialogue('Meow? (Waiting for something to happen?)', 'MEWO');
-                                        case 2:
-                                            opendialogue('A tissue box for wiping your sorrows away.');
-                                        case 3:
-                                            opendialogue('This is Your sketchbook.');
-                                        case 4:
-                                            opendialogue('You tried to boot up your laptop.', '', '"Try again later".');
-                                        case 5:
-                                            if(FlxG.save.data.progression > 0) {
-
-                                            } else {
-                                                opendialogue('You must challange Omori First');
-                                            }
-                                        case 6:
-                                            opendialogue('oh you want a rap battle', '', 'sure', 'tutorial');
+                    }
+                    if(controls.BACK) {
+                        savedata();
+                        FlxG.sound.playMusic(Paths.music('freakyMenu'), 0);
+                        MusicBeatState.switchState(new MainMenuState());
+                    }
+                    if(controls.ACCEPT) {
+                        if(!closingdialogue) {
+                            dialoguefound = false;
+                            sectionstuff.forEach(function(spr:FlxSprite) {
+                                if(FlxMath.distanceBetween(player, spr) < 35 && !dialoguefound) {
+                                    if(spr.ID != 1) {
+                                        dialoguefound = true;
                                     }
-                            }
+                                    switch(section) {
+                                        case 0:
+                                            switch(spr.ID) {
+                                                case 0:
+                                                    opendialogue('Meow? (Waiting for something to happen?)', 'MEWO');
+                                                    FlxG.save.data.cat = true;
+                                                case 2:
+                                                    opendialogue('A tissue box for wiping your sorrows away.');
+                                                    FlxG.save.data.tissue = true;
+                                                case 3:
+                                                    opendialogue('This is Your sketchbook.');
+                                                    FlxG.save.data.diary = true;
+                                                case 4:
+                                                    opendialogue('You tried to boot up your laptop.', '', '"Try again later".');
+                                                    FlxG.save.data.pc = true;
+                                                case 5:
+                                                    if(FlxG.save.data.progression > 0) {
+        
+                                                    } else {
+                                                        opendialogue('A white door casts a faint shadow.\nYou stared at the door.');
+                                                    }
+                                                    FlxG.save.data.door = true;
+                                                case 6:
+                                                    if(FlxG.save.data.mic) {
+                                                        opendialogue('The blue haired singer stares at you.', '', 'He challenges you to sing.', 'tutorial');
+                                                    } else {
+                                                        opendialogue('The blue haired singer stares at you.');
+                                                    }
+                                                    FlxG.save.data.omori = true;
+                                                case 7:
+                                                    if(FlxG.save.data.micfell) {
+                                                        opendialogue('You got a MICROPHONE.');
+                                                    }
+                                            }
+                                    }
+                                    savedata();
+                                }
+                            });
                         }
-                    });
+                    }
+                    if(player.y < -500) {
+                        player.y = 1200;
+                    }
+                    if(player.y > 1200) {
+                        player.y = -500;
+                    }
+                    if(player.x < -1000) {
+                        player.x = 1200;
+                    }
+                    if(player.x > 1200) {
+                        player.x = -1000;
+                    }
                 }
             }
-            if(player.y < -283) {
-                player.y = 691;
+    
+            if(handdis && hand.alpha != 0) {
+                hand.alpha = 0;
             }
-            if(player.y > 691) {
-                player.y = -283;
-            }
-            if(player.x < -449) {
-                player.x = 605;
-            }
-            if(player.x > 605) {
-                player.x = -449;
-            }
-        }
-
-        if(handdis && hand.alpha != 0) {
-            hand.alpha = 0;
         }
 
 		super.update(elapsed);
@@ -329,6 +424,9 @@ class Omori extends MusicBeatState {
             secondtext = false;
             makedialoguetext(secondcache, second);
         } else {
+            if(text == 'You got a MICROPHONE.') {
+                microphonetext = true;
+            }
             if(thedamnsong != '') {
                 songcache = thedamnsong;
                 shouldplaysong = true;
@@ -371,7 +469,17 @@ class Omori extends MusicBeatState {
         var trueorno = false;
         sectionstuff.forEach(function(spr:FlxSprite) {
             if(spr.ID != 1 && FlxG.pixelPerfectOverlap(player, spr, 1)) {
-                trueorno = true;
+                if(section == 0) {
+                    if(spr.ID == 7) {
+                        if(FlxG.save.data.micfell && !FlxG.save.data.mic) {
+                            trueorno = true;
+                        }
+                    } else {
+                        trueorno = true;
+                    }
+                } else {
+                    trueorno = true;
+                }
             }
         });
         return trueorno;
