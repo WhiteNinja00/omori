@@ -184,7 +184,7 @@ class MainMenuState extends MusicBeatState
 			add(text);
 		}
 
-		firstchangeitem();
+		changeitemlook();
 
 		super.create();
 	}
@@ -271,17 +271,11 @@ class MainMenuState extends MusicBeatState
 
 		if(oldcurselected != curSelected) {
 			FlxG.sound.play(Paths.sound('scrollMenu'));
+			changeitemlook();
 		}
-
-		menuItems.forEach(function(spr:FlxSprite) {
-			if(spr.ID == curSelected && oldcurselected != curSelected) {
-				floatstuff = 0;
-				hand.x = spr.x - hand.width - 22.5;
-			}
-		});
 	}
 
-	function firstchangeitem() {
+	function changeitemlook() {
 		menuItems.forEach(function(spr:FlxSprite) {
 			if(spr.ID == curSelected) {
 				floatstuff = 0;
